@@ -36,6 +36,7 @@ pbtree_node BTree::btree_create()
 
 void  BTree::insert(int target)
 {
+	cout << "Insert " << char(target + 64) << endl;
 	pbtree_node node = root;
 	while (node->p[0] != 0)//非叶节点，便利寻找下一个应该寻找的节点
 	{
@@ -96,6 +97,10 @@ void BTree::btree_split(pbtree_node node)
 		node->p[node->num] = NULL;
 		node->num = 1;
 		node->p[1] = right;
+		for (int b = 0; b <= left->num; b++)
+			if(left->p[b]!=NULL)left->p[b]->parent = left;
+		for (int b = 0; b <= right->num; b++)
+			if(right->p[b]!=NULL)right->p[b]->parent = right;
 	}
 	else//如果是非跟节点
 	{
@@ -105,6 +110,8 @@ void BTree::btree_split(pbtree_node node)
 		{
 			brother->k[i] = node->k[i + T];
 			brother->p[i] = node->p[i + T];
+			if (brother->p[i] != NULL )
+			 brother->p[i]->parent = brother;
 			node->k[i + T] = 0;
 			node->p[i + T] = NULL;
 		}
@@ -113,7 +120,17 @@ void BTree::btree_split(pbtree_node node)
 		{
 			brother->k[T - 1] = node->k[2 * T - 1];
 			brother->p[T - 1] = node->p[2 * T - 1];
+			if (brother->p[T-1]!=NULL)
+			{
+				brother->p[T - 1]->parent = brother;
+			}
+			
+			 
 			brother->p[T] = node->p[2 * T];
+			if (brother->p[T ] != NULL)
+			{
+				brother->p[T]->parent = brother;
+			}
 			node->k[2 * T - 1] = 0;
 			node->p[2 * T - 1] = node->p[2 * T] = NULL;
 			brother->num = T;
@@ -123,6 +140,10 @@ void BTree::btree_split(pbtree_node node)
 		{
 			brother->num = T - 1;
 			brother->p[T - 1] = node->p[2 * T - 1];
+			if (brother->p[T - 1] != NULL)
+			{
+				brother->p[T - 1]->parent = brother;
+			}
 			node->p[2 * T - 1] = 0;
 
 		}
@@ -189,7 +210,14 @@ void BTree::btree_node_insert(pbtree_node node, int target, pbtree_node left, pb
 
 /************  删除分析   **************
 *
+*遍历搜索，如果不存在则直接返回false
+*遍历搜索，定位到关键字的节点的时候，找到节点孩子的左节点的最大值或者右节点的最小值进行替换，接下来是删除叶节点处的替换的关键字
+*判断函数进行对叶节点的判断，如果关键字小于T-1
+*①其兄弟可以提供一个关键字支持（此时兄弟关键字大于等于T），则通过旋转，从父结点转接一个关键字过来
+*②若左右两兄弟都无法提供，则加上父节点对应的关键字合并，此时会影响父节点的个数，递归判断父节点
 *
+*注意事项：
+*当进行孩纸指针转移的时候，会产生父节点的更替，此时注意更新parent的信息
 */
 
 void BTree::btree_judge(pbtree_node node)
@@ -201,23 +229,23 @@ void BTree::btree_judge(pbtree_node node)
 	pbtree_node left_brother = NULL, right_brother = NULL;
 
 	int i = 0;
-	for (; i < parent->num; ++i)
+	for (; i <= parent->num; ++i)
 	{
 		if (parent->p[i] == node)
 		{
 			if (i != 0)
 				left_brother = parent->p[i - 1];
-			if (i != parent->num - 1)
+			if (i != parent->num)
 				right_brother = parent->p[i + 1];
 			break;
 		}
 	}
-	if (left_brother!=NULL&&left_brother->num >= T)
+	if (left_brother != NULL&&left_brother->num >= T)
 	{
-		node->p[node->num+1]=node->p[node->num];
-		for (int q = node->num-1; q >=0; --q)
+		node->p[node->num + 1] = node->p[node->num];
+		for (int q = node->num - 1; q >= 0; --q)
 		{
-			node->k[q+1]=node->k[q];
+			node->k[q + 1] = node->k[q];
 			node->p[q + 1] = node->p[q];
 		}
 		node->k[0] = parent->k[i - 1];
@@ -226,15 +254,16 @@ void BTree::btree_judge(pbtree_node node)
 		left_brother->k[left_brother->num - 1] = 0;
 		left_brother->p[left_brother->num] = NULL;
 		--left_brother->num;
+		++node->num;
 	}
 	else
-		if (right_brother!=NULL&&right_brother->num >= T)
+		if (right_brother != NULL&&right_brother->num >= T)
 		{
 		node->p[node->num + 1] = right_brother->p[0];
 		node->k[node->num] = parent->k[i];
 		++node->num;
 		parent->k[i] = right_brother->k[0];
-		for (int q = 0; q < right_brother->num-1; ++q)
+		for (int q = 0; q < right_brother->num - 1; ++q)
 		{
 			right_brother->k[q] = right_brother->k[q + 1];
 			right_brother->p[q] = right_brother->p[q + 1];
@@ -251,15 +280,20 @@ void BTree::btree_judge(pbtree_node node)
 				node = right_brother;
 				left_brother->k[left_brother->num] = parent->k[i];
 			}
-			else
-				left_brother->k[left_brother->num] = parent->k[i-1];
+			else{
+				left_brother->k[left_brother->num] = parent->k[--i];
 
-			for (int q = left_brother->num + 1; q < node->num; ++q)
+			}
+
+			for (int q = left_brother->num + 1; q < node->num + left_brother->num + 1; ++q)
 			{
-				left_brother->k[q] = node->k[q - left_brother->num + 1];
-				left_brother->p[q] = node->p[q - left_brother->num + 1];
+				left_brother->k[q] = node->k[q - left_brother->num - 1];
+				left_brother->p[q] = node->p[q - left_brother->num - 1];
+				left_brother->p[q] == NULL ? NULL : left_brother->p[q]->parent = left_brother;
 			}
 			left_brother->p[node->num + left_brother->num + 1] = node->p[node->num];
+			left_brother->p[node->num + left_brother->num + 1] == NULL ? NULL : left_brother->p[node->num + left_brother->num + 1]->parent = left_brother;
+			left_brother->num = node->num + left_brother->num + 1;
 
 			for (int q = i; q < parent->num; q++){
 				parent->k[q] = parent->k[q + 1];
@@ -271,6 +305,19 @@ void BTree::btree_judge(pbtree_node node)
 			parent->num--;
 			delete node;
 
+			//不考虑一个关键字的B树
+			if (0 == parent->num){
+				root->num = left_brother->num;
+				for (int i = 0; i < root->num; ++i)
+					root->k[i] = left_brother->k[i];
+				for (int i = 0; i <= root->num; ++i){
+					root->p[i] = left_brother->p[i];
+					root->p[i]==NULL?NULL:root->p[i]->parent = root;
+				}
+					
+				delete left_brother;
+			}
+			else
 			btree_judge(parent);
 		}
 
@@ -278,6 +325,7 @@ void BTree::btree_judge(pbtree_node node)
 
 bool BTree::Delete(int target)
 {
+	cout <<"Delete "<< char(target + 64)<<endl;
 	pbtree_node node = root;
 	int find = -1;
 	while (node != NULL)//非叶节点，便利寻找下一个应该寻找的节点
@@ -295,12 +343,12 @@ bool BTree::Delete(int target)
 				break;
 			}
 		}
-		if (find!=-1)
+		if (find != -1)
 			break;
 		if (flag){
 			node = node->p[node->num];
 		}
-		
+
 	}
 	if (find == -1)
 		return false;
@@ -315,8 +363,8 @@ bool BTree::Delete(int target)
 	}
 	else//have children
 	{
-		pbtree_node temp = node->p[find+1];
-		while (temp->p[0]!=NULL)
+		pbtree_node temp = node->p[find + 1];
+		while (temp->p[0] != NULL)
 			temp = temp->p[0];
 		node->k[find] = temp->k[0];
 		for (int i = 0; i < temp->num; ++i)
@@ -340,7 +388,7 @@ void BTree::level_display()
 
 		cout << "[";
 		for (int i = 0; i < node->num; i++) {
-			cout << char(node->k[i]+64) << " ";
+			cout << char(node->k[i] + 64) << " ";
 		}
 		cout << "]";
 

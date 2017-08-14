@@ -86,6 +86,8 @@ private:
 	* @param node: btree node pointer
 	*/
 	void btree_judge(pbtree_node node);
+	//向上循环替换掉已经被删除的关键字
+	void bplustree_replace(pbtree_node node, int find, int replace);
 };
 
 #endif

@@ -301,17 +301,10 @@ void BTree::btree_node_insert(pbtree_node node, int target, pbtree_node left, pb
 
 /************  删除分析   **************
 *
-*遍历搜索，如果不存在则直接返回false
-*遍历搜索，定位到关键字的节点的时候，找到节点孩子的左节点的最大值或者右节点的最小值进行替换，接下来是删除叶节点处的替换的关键字
-*判断函数进行对叶节点的判断，如果关键字小于T-1
-*①其兄弟可以提供一个关键字支持（此时兄弟关键字大于等于T），则通过旋转，从父结点转接一个关键字过来
-*②若左右两兄弟都无法提供，则加上父节点对应的关键字合并，此时会影响父节点的个数，递归判断父节点
-*
-*注意事项：
-*当进行孩纸指针转移的时候，会产生父节点的更替，此时注意更新parent的信息
-*
-*
-*删除叶节点 ，更新上一个
+*首先定位到相关的叶节点，删除信息
+*①如果当前的叶节点关键数满足大于T个，直接删除后，若是处于叶节点的最小值或者最大值，则向上更新搜索节点处的信息，进行替换
+*②如果当前的叶节点删除后关键数小于T-1个，如果兄弟节点关键字数大于T个，则从兄弟结点处获得一个关键字，向上更新搜索节点处信息，
+*如果兄弟节点关键字数为T-1个，这两兄弟合并为一个叶节点，向上更新搜索节点信息（此时具体为删除搜索结点的某一个key值，可以直接调用原来btree的judge函数）
 */
 
 void BTree::btree_judge(pbtree_node node)
@@ -421,53 +414,134 @@ bool BTree::Delete(int target)
 {
 	cout << "Delete " <<target << endl;
 	pbtree_node node = root;
-	int find = -1;
+	int pfind = -1;
 	while (!node->isleaf)//非叶节点，便利寻找下一个应该寻找的节点
 	{
 		bool flag = true;
 		for (int i = 0; i < node->num; i++)
 		{
-			if (target == node->k[i]){
-				find = i;
-				break;
-			}
 			if (target < node->k[i]){
 				node = node->p[i];
+				pfind = i;
 				flag = false;
 				break;
 			}
 		}
-		if (find != -1)
-			break;
 		if (flag){
+			pfind = node->num;
 			node = node->p[node->num];
 		}
-
 	}
-	if (find == -1)
-		return false;
-	//leaf node
-	if (node->isleaf){
-		for (int i = find; i < node->num; ++i)
-		{
-			node->k[i] = node->k[i + 1];
-		}
-		node->num--;
-		btree_judge(node);
-	}
-	else//normal node
+	
+	
+	pbtree_node parent = node->parent,brother;
+	//除了该叶节点在p[0]处，其他的叶节点兄弟设定为它的左兄弟
+	if (pfind == 0) brother = parent->p[1];
+	else 
+		brother = parent->p[pfind - 1];
+	int kfind = -1;
+	//先对node里面target值进行删除
+	bool exist = false;
+	for (int i = 0; i < node->num; ++i)
 	{
-		pbtree_node temp = node->p[find + 1];
-		while (temp->p[0] != NULL)
-			temp = temp->p[0];
-		node->k[find] = temp->k[0];
-		for (int i = 0; i < temp->num; ++i)
-			temp->k[i] = temp->k[i + 1];
-		temp->num--;
-		btree_judge(temp);
+		if (node->k[i] == target){
+			kfind = i;
+			exist = true;
+		}
+		if (kfind != -1)
+			node->k[i] = node->k[i + 1];
 	}
+	if (!exist)
+		return false;
+	//此时只需更换搜索结点的信息
+	if (node->num >= T || brother->num >= T){
+		if (node->num >= T){//不需要从兄弟结点找节点
+			--node->num;
+			if (kfind != 0)
+				return true;
+			else
+				bplustree_replace(parent, target, node->k[0]);
+		}
+		else
+		{//node->num < T && brother->num >= T
+			if (pfind == 0){
+				node->k[node->num - 1] = brother->k[0];
+				for (int i = 0; i < brother->num; ++i)
+					brother->k[i] = brother->k[i + 1];
+				--brother->num;
+				bplustree_replace(parent, target, brother->k[0]);
+			}
+			else{
+				for (int i = node->num - 1; i >= 0; --i)
+					node->k[i + 1] = node->k[i];
+				node->k[0] = brother->k[brother->num - 1];
+				brother->k[brother->num - 1] = 0;
+				--brother->num;
+				bplustree_replace(parent, target, node->k[0]);
+			}
+		}
+	}
+	else//需要删除搜索结点的信息
+	{
+		if (pfind == 0){
+			for (int i = 0; i < brother->num; ++i)
+				node->k[i + node->num - 1] = brother->k[i];
+			node->num +=( brother->num - 1);
+			node->next = brother->next;
+			for (int i = 0; i < parent->num; ++i)
+			{
+				parent->k[i] = parent->k[i + 1];
+				parent->p[i] = parent->p[i + 1];
+			}
+			parent->p[parent->num] = NULL;
+			parent->p[0] = node;
+			--parent->num;
+			delete brother;
+			if (parent == root&&root->num==0){
+				node->isleaf = true;
+				delete root;
+				root=head = node;
+			}
+			else
+			btree_judge(parent);
+		}
+		else
+		{
+			for (int i = brother->num; i < brother->num + node->num - 1; ++i)
+				brother->k[i] = node->k[i - brother->num];
+			brother->num += (node->num - 1);
+			brother->next = node->next;
+			for (int i = pfind-1; i < parent->num; ++i)
+			{
+				parent->k[i] = parent->k[i + 1];
+				parent->p[i+1] = parent->p[i +	2];
+			}
+			--parent->num;
+			delete node;
+			if (parent == root&&root->num == 0){
+				brother->isleaf = true;
+				delete root;
+				root = head = brother;
+			}
+			else
+			btree_judge(parent);
+		}
+	}
+	return true;
 }
 
+
+void BTree::bplustree_replace(pbtree_node node, int find, int replace)
+{
+	for (int i = 0; i < node->num; ++i)
+	{
+		if (node->k[i] == find){
+			node->k[i] = replace;
+			return;
+		}
+	}
+	bplustree_replace(node->parent, find, replace);
+}
 void BTree::level_display()
 {
 	// just for simplicty, can't exceed 200 nodes in the tree

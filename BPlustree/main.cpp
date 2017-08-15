@@ -1,11 +1,11 @@
-#include "BTree.h"
+#include "BPlusTree.h"
 #include<iostream>
 using namespace std;
 
 int main()
 {
-	BTree bt;
-	int arr[] = { 1,2,5,45,73,4,8,9,14,23,6,3 };
+	BPlusTree bt;
+	int arr[] = { 6,2,7 ,45, 73,9, 14, 23, 1, 3 };
 	for (int i = 0; i < sizeof(arr) / sizeof(int); i++) {
 		bt.insert(arr[i]);
 	}
@@ -22,14 +22,14 @@ int main()
 	bt.level_display();
 	bt.Delete(8);
 	bt.level_display();
-	bt.Delete(5);
+	bt.Delete(7);
 	bt.level_display();
-	while (1){
-		int a;
-		cin >> a;
-		bt.Delete(a);
-		bt.level_display();
-	}
+	bt.Delete(14);
+	bt.level_display();
+	bt.Delete(73);
+	bt.level_display();
+	bt.Delete(1);
+	bt.level_display();
 	system("pause");
 	return 0;
 }

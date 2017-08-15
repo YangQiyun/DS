@@ -1,8 +1,8 @@
-#include"BTree.h"
+#include"BPlusTree.h"
 #include<iostream>
 using namespace std;
 
-pbtree_node BTree::btree_node_new()
+pbtree_node BPlusTree::btree_node_new()
 {
 	pbtree_node pNode = new btree_node;
 	if (NULL == pNode)
@@ -19,14 +19,14 @@ pbtree_node BTree::btree_node_new()
 	}
 
 	pNode->num = 0;
-	pNode->next =pNode->parent = NULL;
+	pNode->next = pNode->parent = NULL;
 
 	pNode->isleaf = false;
 
 	return pNode;
 }
 
-pbtree_node BTree::btree_create()
+pbtree_node BPlusTree::btree_create()
 {
 	if (NULL == this->root){
 		root = btree_node_new();
@@ -38,11 +38,11 @@ pbtree_node BTree::btree_create()
 	return root;
 }
 
-void  BTree::insert(int target)
+void  BPlusTree::insert(int target)
 {
-	cout << "Insert " << target  << endl;
+	cout << "Insert " << target << endl;
 	pbtree_node node = root;
-	while (node->isleaf==false)//非叶节点，便利寻找下一个应该寻找的节点
+	while (node->isleaf == false)//非叶节点，便利寻找下一个应该寻找的节点
 	{
 		bool flag = true;
 		for (int i = 0; i < node->num; i++)
@@ -70,7 +70,7 @@ void  BTree::insert(int target)
 */
 
 
-void BTree::btree_split(pbtree_node node)
+void BPlusTree::btree_split(pbtree_node node)
 {
 	if (node == root)//如果该叶节点是根节点
 	{
@@ -166,7 +166,7 @@ void BTree::btree_split(pbtree_node node)
 	}
 }
 
-void BTree::bplustree_split(pbtree_node node)
+void BPlusTree::bplustree_split(pbtree_node node)
 {
 	if (node == root)//如果该叶节点是根节点
 	{
@@ -188,10 +188,10 @@ void BTree::bplustree_split(pbtree_node node)
 			node->k[0] = node->k[T];
 		}
 		else{//该树原来的M为奇数,  5个关键key 6个叉  t=3  
-			for (int i = 0; i < T-1; ++i)
+			for (int i = 0; i < T - 1; ++i)
 			{
 				left->k[i] = node->k[i];
-				right->k[i] = node->k[i + T-1];
+				right->k[i] = node->k[i + T - 1];
 			}
 			right->k[T - 1] = node->k[2 * T - 2];
 			right->num = T;
@@ -220,17 +220,17 @@ void BTree::bplustree_split(pbtree_node node)
 		{
 			for (int i = 0; i < T; ++i)
 			{
-				brother->k[i] = node->k[i+T];
+				brother->k[i] = node->k[i + T];
 				node->k[i + T] = 0;
 			}
-			brother->num=node->num = T;
+			brother->num = node->num = T;
 		}
 		else //该树原来的M为奇数5， 5个关键key 6个叉 t=3 
 		{
 			for (int i = 0; i < T; ++i)
 			{
-				brother->k[i] = node->k[i + T-1];
-				node->k[i + T-1] = 0;
+				brother->k[i] = node->k[i + T - 1];
+				node->k[i + T - 1] = 0;
 			}
 			brother->num = T;
 			node->num = T - 1;
@@ -242,7 +242,7 @@ void BTree::bplustree_split(pbtree_node node)
 	}
 }
 
-void BTree::btree_node_insert(pbtree_node node, int target, pbtree_node left, pbtree_node right)
+void BPlusTree::btree_node_insert(pbtree_node node, int target, pbtree_node left, pbtree_node right)
 {
 	//叶节点非满，直接插入
 	if (0 == node->num)//如果是最初始的空的跟节点
@@ -307,7 +307,7 @@ void BTree::btree_node_insert(pbtree_node node, int target, pbtree_node left, pb
 *如果兄弟节点关键字数为T-1个，这两兄弟合并为一个叶节点，向上更新搜索节点信息（此时具体为删除搜索结点的某一个key值，可以直接调用原来btree的judge函数）
 */
 
-void BTree::btree_judge(pbtree_node node)
+void BPlusTree::btree_judge(pbtree_node node)
 {
 	if (node->num >= T - 1 || node == root)
 		return;
@@ -346,19 +346,19 @@ void BTree::btree_judge(pbtree_node node)
 	else
 		if (right_brother != NULL&&right_brother->num >= T)
 		{
-			node->p[node->num + 1] = right_brother->p[0];
-			node->k[node->num] = parent->k[i];
-			++node->num;
-			parent->k[i] = right_brother->k[0];
-			for (int q = 0; q < right_brother->num - 1; ++q)
-			{
-				right_brother->k[q] = right_brother->k[q + 1];
-				right_brother->p[q] = right_brother->p[q + 1];
-			}
-			right_brother->p[right_brother->num - 1] = right_brother->p[right_brother->num];
-			right_brother->k[right_brother->num - 1] = 0;
-			right_brother->p[right_brother->num] = NULL;
-			--right_brother->num;
+		node->p[node->num + 1] = right_brother->p[0];
+		node->k[node->num] = parent->k[i];
+		++node->num;
+		parent->k[i] = right_brother->k[0];
+		for (int q = 0; q < right_brother->num - 1; ++q)
+		{
+			right_brother->k[q] = right_brother->k[q + 1];
+			right_brother->p[q] = right_brother->p[q + 1];
+		}
+		right_brother->p[right_brother->num - 1] = right_brother->p[right_brother->num];
+		right_brother->k[right_brother->num - 1] = 0;
+		right_brother->p[right_brother->num] = NULL;
+		--right_brother->num;
 		}
 		else
 		{
@@ -410,9 +410,9 @@ void BTree::btree_judge(pbtree_node node)
 
 }
 
-bool BTree::Delete(int target)
+bool BPlusTree::Delete(int target)
 {
-	cout << "Delete " <<target << endl;
+	cout << "Delete " << target << endl;
 	pbtree_node node = root;
 	int pfind = -1;
 	while (!node->isleaf)//非叶节点，便利寻找下一个应该寻找的节点
@@ -432,12 +432,12 @@ bool BTree::Delete(int target)
 			node = node->p[node->num];
 		}
 	}
-	
-	
-	pbtree_node parent = node->parent,brother;
+
+
+	pbtree_node parent = node->parent, brother;
 	//除了该叶节点在p[0]处，其他的叶节点兄弟设定为它的左兄弟
 	if (pfind == 0) brother = parent->p[1];
-	else 
+	else
 		brother = parent->p[pfind - 1];
 	int kfind = -1;
 	//先对node里面target值进行删除
@@ -460,7 +460,7 @@ bool BTree::Delete(int target)
 			if (kfind != 0)
 				return true;
 			else
-				bplustree_replace(parent, target, node->k[0]);
+				bplustree_replace(parent, pfind-1,target, node->k[0]);
 		}
 		else
 		{//node->num < T && brother->num >= T
@@ -469,7 +469,9 @@ bool BTree::Delete(int target)
 				for (int i = 0; i < brother->num; ++i)
 					brother->k[i] = brother->k[i + 1];
 				--brother->num;
-				bplustree_replace(parent, target, brother->k[0]);
+				if (0 == kfind)
+					bplustree_replace(parent, pfind, target, node->k[0]);
+				bplustree_replace(parent, pfind - 1, node->k[node->num - 1], brother->k[0]);
 			}
 			else{
 				for (int i = node->num - 1; i >= 0; --i)
@@ -477,7 +479,10 @@ bool BTree::Delete(int target)
 				node->k[0] = brother->k[brother->num - 1];
 				brother->k[brother->num - 1] = 0;
 				--brother->num;
-				bplustree_replace(parent, target, node->k[0]);
+				if (0 == kfind)
+					bplustree_replace(parent, pfind-1 , target, node->k[0]);
+				else
+					bplustree_replace(parent, pfind - 1, node->k[1], node->k[0]);
 			}
 		}
 	}
@@ -486,7 +491,7 @@ bool BTree::Delete(int target)
 		if (pfind == 0){
 			for (int i = 0; i < brother->num; ++i)
 				node->k[i + node->num - 1] = brother->k[i];
-			node->num +=( brother->num - 1);
+			node->num += (brother->num - 1);
 			node->next = brother->next;
 			for (int i = 0; i < parent->num; ++i)
 			{
@@ -497,13 +502,15 @@ bool BTree::Delete(int target)
 			parent->p[0] = node;
 			--parent->num;
 			delete brother;
-			if (parent == root&&root->num==0){
+			if (0 == kfind)
+				bplustree_replace(parent, pfind, target, node->k[0]);
+			if (parent == root&&root->num == 0){
 				node->isleaf = true;
 				delete root;
-				root=head = node;
+				root = head = node;
 			}
 			else
-			btree_judge(parent);
+				btree_judge(parent);
 		}
 		else
 		{
@@ -511,10 +518,10 @@ bool BTree::Delete(int target)
 				brother->k[i] = node->k[i - brother->num];
 			brother->num += (node->num - 1);
 			brother->next = node->next;
-			for (int i = pfind-1; i < parent->num; ++i)
+			for (int i = pfind - 1; i < parent->num; ++i)
 			{
 				parent->k[i] = parent->k[i + 1];
-				parent->p[i+1] = parent->p[i +	2];
+				parent->p[i + 1] = parent->p[i + 2];
 			}
 			--parent->num;
 			delete node;
@@ -524,25 +531,27 @@ bool BTree::Delete(int target)
 				root = head = brother;
 			}
 			else
-			btree_judge(parent);
+				btree_judge(parent);
 		}
 	}
 	return true;
 }
 
 
-void BTree::bplustree_replace(pbtree_node node, int find, int replace)
+void BPlusTree::bplustree_replace(pbtree_node node, int pfind, int find, int replace)
 {
-	for (int i = 0; i < node->num; ++i)
+	for (int i = pfind; i < node->num; ++i)
 	{
 		if (node->k[i] == find){
 			node->k[i] = replace;
 			return;
 		}
 	}
-	bplustree_replace(node->parent, find, replace);
+	if (node == root)
+		return;
+	bplustree_replace(node->parent,0, find, replace);
 }
-void BTree::level_display()
+void BPlusTree::level_display()
 {
 	// just for simplicty, can't exceed 200 nodes in the tree
 	btree_node *queue[200] = { NULL };
@@ -556,7 +565,7 @@ void BTree::level_display()
 
 		cout << "[";
 		for (int i = 0; i < node->num; i++) {
-			cout << node->k[i]  << " ";
+			cout << node->k[i] << " ";
 		}
 		cout << "]";
 
@@ -565,6 +574,22 @@ void BTree::level_display()
 				queue[rear++] = node->p[i];
 			}
 		}
+	}
+	cout << endl;
+	bplus_display();
+}
+
+void BPlusTree::bplus_display()
+{
+	pbtree_node node = head;
+	while (node)
+	{
+		cout << "[";
+		for (int i = 0; i < node->num; i++) {
+			cout << node->k[i] << " ";
+		}
+		cout << "]";
+		node = node->next;
 	}
 	cout << endl;
 }

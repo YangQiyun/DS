@@ -1,5 +1,5 @@
-#ifndef BTREE_H
-#define BTREE_H
+#ifndef BPLUSTREE_H
+#define BPLUSTREE_H
 #define  M 3
 //#define  T (M/2)*2<M?(M/2+1):(M/2)  //最低分叉数
 #define T 2
@@ -15,10 +15,10 @@ typedef struct btree_nodes {
 }btree_node;
 
 
-class BTree
+class BPlusTree
 {
 public:
-	BTree(){
+	BPlusTree(){
 		root = 0;
 		btree_create();
 	}
@@ -60,6 +60,11 @@ public:
 	*
 	*/
 	void level_display();
+	/**
+	* @brief show by leaf node
+	*
+	*/
+	void bplus_display();
 private:
 	int btree_node_num;//record the number of btree node
 	pbtree_node root;
@@ -69,7 +74,8 @@ private:
 	*
 	* @param node:btree node pointer
 	*/
-	void btree_split(pbtree_node node);
+	void btree_split(pbtree_node node);	
+	void bplustree_split(pbtree_node node);
 	/**
 	* @brief insert the node which need add two children
 	*
@@ -78,7 +84,6 @@ private:
 	* @param left:left child of value
 	* @param right:right child of value
 	*/
-	void bplustree_split(pbtree_node node);
 	void btree_node_insert(pbtree_node node, int target, pbtree_node left, pbtree_node right);
 	/**
 	* @brief judge the tree node's num is legal (num more than or equal T-1)
@@ -86,8 +91,16 @@ private:
 	* @param node: btree node pointer
 	*/
 	void btree_judge(pbtree_node node);
-	//向上循环替换掉已经被删除的关键字
-	void bplustree_replace(pbtree_node node, int find, int replace);
+	/**
+	* @brief 向上循环替换掉已经被删除的关键字
+	*
+	* @param node: btree node pointer
+	* @param pfind: the index of parent'p to the node, for the reason of the same value that may replace a wrong value
+	* @param find:the value which need to be replaced
+	* @param replace:the value to the new one
+	*
+	*/
+	void bplustree_replace(pbtree_node node, int pfind, int find, int replace);
 };
 
 #endif
